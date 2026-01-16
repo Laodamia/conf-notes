@@ -8,9 +8,17 @@ import json
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
 import requests
-import anthropic
 
 app = Flask(__name__)
+
+# Import anthropic only when needed to avoid startup errors
+anthropic = None
+def get_anthropic_client():
+    global anthropic
+    if anthropic is None:
+        import anthropic as anth
+        anthropic = anth
+    return anthropic
 
 # Configuration from environment variables
 FIREFLIES_API_KEY = os.environ.get("FIREFLIES_API_KEY")
@@ -158,7 +166,8 @@ def summarize_with_claude(transcript_text, title=""):
     if not transcript_text.strip():
         return None, "Empty transcript"
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    anth = get_anthropic_client()
+    client = anth.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     prompt = SUMMARY_PROMPT.format(transcript=transcript_text)
 
@@ -173,7 +182,7 @@ def summarize_with_claude(transcript_text, title=""):
 
         summary = message.content[0].text
         return summary, None
-    except anthropic.APIError as e:
+    except Exception as e:
         return None, f"Claude API error: {str(e)}"
 
 
@@ -288,6 +297,22 @@ def health():
         "anthropic_configured": bool(ANTHROPIC_API_KEY),
         "google_configured": bool(GOOGLE_SCRIPT_URL)
     })
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({
+        "error": "Internal server error",
+        "details": str(error)
+    }), 500
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return jsonify({
+        "error": "An error occurred",
+        "details": str(e)
+    }), 500
 
 
 if __name__ == "__main__":
