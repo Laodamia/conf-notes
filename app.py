@@ -169,7 +169,7 @@ def summarize_with_claude(transcript_text, title=""):
     }
 
     payload = {
-        "model": "claude-sonnet-4-20250514",
+        "model": "claude-3-5-sonnet-20241022",
         "max_tokens": 2000,
         "messages": [
             {"role": "user", "content": prompt}
@@ -183,9 +183,12 @@ def summarize_with_claude(transcript_text, title=""):
             json=payload,
             timeout=120  # Longer timeout for processing long transcripts
         )
-        response.raise_for_status()
-        data = response.json()
 
+        if not response.ok:
+            error_detail = response.json().get("error", {}).get("message", response.text)
+            return None, f"Claude API error: {error_detail}"
+
+        data = response.json()
         summary = data["content"][0]["text"]
         return summary, None
     except requests.exceptions.RequestException as e:
