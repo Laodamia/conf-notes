@@ -11,14 +11,6 @@ import requests
 
 app = Flask(__name__)
 
-# Import anthropic only when needed to avoid startup errors
-anthropic = None
-def get_anthropic_client():
-    global anthropic
-    if anthropic is None:
-        import anthropic as anth
-        anthropic = anth
-    return anthropic
 
 # Configuration from environment variables
 FIREFLIES_API_KEY = os.environ.get("FIREFLIES_API_KEY")
@@ -167,24 +159,39 @@ def summarize_with_claude(transcript_text, title=""):
     if not transcript_text.strip():
         return None, "Empty transcript"
 
-    anth = get_anthropic_client()
-    client = anth.Anthropic(api_key=ANTHROPIC_API_KEY)
-
     prompt = SUMMARY_PROMPT.format(transcript=transcript_text)
 
-    try:
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=2000,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
+    # Use direct HTTP request to avoid SDK compatibility issues
+    headers = {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "content-type": "application/json",
+        "anthropic-version": "2023-06-01"
+    }
 
-        summary = message.content[0].text
+    payload = {
+        "model": "claude-sonnet-4-20250514",
+        "max_tokens": 2000,
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+
+    try:
+        response = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers=headers,
+            json=payload,
+            timeout=120  # Longer timeout for processing long transcripts
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        summary = data["content"][0]["text"]
         return summary, None
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         return None, f"Claude API error: {str(e)}"
+    except (KeyError, IndexError) as e:
+        return None, f"Unexpected API response format: {str(e)}"
 
 
 def append_to_google_doc(title, summary, date):
