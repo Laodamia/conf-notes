@@ -169,7 +169,7 @@ def summarize_with_claude(transcript_text, title=""):
     }
 
     payload = {
-        "model": "claude-3-5-sonnet-20241022",
+        "model": "claude-3-haiku-20240307",
         "max_tokens": 2000,
         "messages": [
             {"role": "user", "content": prompt}
@@ -185,8 +185,12 @@ def summarize_with_claude(transcript_text, title=""):
         )
 
         if not response.ok:
-            error_detail = response.json().get("error", {}).get("message", response.text)
-            return None, f"Claude API error: {error_detail}"
+            try:
+                error_data = response.json()
+                error_detail = error_data.get("error", {}).get("message", str(error_data))
+            except:
+                error_detail = response.text
+            return None, f"Claude API error ({response.status_code}): {error_detail}"
 
         data = response.json()
         summary = data["content"][0]["text"]
