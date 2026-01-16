@@ -70,9 +70,7 @@ def fetch_fireflies_transcripts(limit=5):
             title
             date
             duration
-            host_name
-            host_email
-            participants
+            organizer_email
             sentences {
                 speaker_name
                 text
@@ -235,9 +233,7 @@ def list_transcripts():
             "title": t.get("title", "Untitled"),
             "date": t.get("date"),
             "duration": t.get("duration", 0),
-            "host_name": t.get("host_name", ""),
-            "host_email": t.get("host_email", ""),
-            "participants": t.get("participants", [])
+            "organizer_email": t.get("organizer_email", "")
         })
 
     return jsonify({"transcripts": simplified})
