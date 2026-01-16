@@ -70,6 +70,9 @@ def fetch_fireflies_transcripts(limit=5):
             title
             date
             duration
+            host_name
+            host_email
+            participants
             sentences {
                 speaker_name
                 text
@@ -231,7 +234,10 @@ def list_transcripts():
             "id": t.get("id"),
             "title": t.get("title", "Untitled"),
             "date": t.get("date"),
-            "duration": t.get("duration", 0)
+            "duration": t.get("duration", 0),
+            "host_name": t.get("host_name", ""),
+            "host_email": t.get("host_email", ""),
+            "participants": t.get("participants", [])
         })
 
     return jsonify({"transcripts": simplified})
@@ -240,37 +246,43 @@ def list_transcripts():
 @app.route("/api/process/<transcript_id>")
 def process_transcript(transcript_id):
     """Process a specific transcript: fetch, summarize, and optionally save"""
-    # Fetch the transcript
-    transcript, error = get_transcript_by_id(transcript_id)
-    if error:
-        return jsonify({"error": error}), 500
+    try:
+        # Fetch the transcript
+        transcript, error = get_transcript_by_id(transcript_id)
+        if error:
+            return jsonify({"error": f"Failed to fetch transcript: {error}"}), 500
 
-    if not transcript:
-        return jsonify({"error": "Transcript not found"}), 404
+        if not transcript:
+            return jsonify({"error": "Transcript not found"}), 404
 
-    # Format the transcript
-    transcript_text = format_transcript(transcript)
-    title = transcript.get("title", "Untitled")
-    date = transcript.get("date", "")
+        # Format the transcript
+        transcript_text = format_transcript(transcript)
+        title = transcript.get("title", "Untitled")
+        date = transcript.get("date", "")
 
-    # Summarize with Claude
-    summary, error = summarize_with_claude(transcript_text, title)
-    if error:
-        return jsonify({"error": error}), 500
+        if not transcript_text.strip():
+            return jsonify({"error": "Transcript is empty - it may still be processing in Fireflies"}), 400
 
-    # Try to append to Google Doc (optional)
-    google_saved = False
-    google_error = None
-    if GOOGLE_SCRIPT_URL:
-        google_saved, google_error = append_to_google_doc(title, summary, date)
+        # Summarize with Claude
+        summary, error = summarize_with_claude(transcript_text, title)
+        if error:
+            return jsonify({"error": f"Failed to summarize: {error}"}), 500
 
-    return jsonify({
-        "title": title,
-        "date": date,
-        "summary": summary,
-        "google_saved": google_saved,
-        "google_error": google_error
-    })
+        # Try to append to Google Doc (optional)
+        google_saved = False
+        google_error = None
+        if GOOGLE_SCRIPT_URL:
+            google_saved, google_error = append_to_google_doc(title, summary, date)
+
+        return jsonify({
+            "title": title,
+            "date": date,
+            "summary": summary,
+            "google_saved": google_saved,
+            "google_error": google_error
+        })
+    except Exception as e:
+        return jsonify({"error": f"Processing failed: {str(e)}"}), 500
 
 
 @app.route("/api/process-latest")
@@ -296,6 +308,28 @@ def health():
         "fireflies_configured": bool(FIREFLIES_API_KEY),
         "anthropic_configured": bool(ANTHROPIC_API_KEY),
         "google_configured": bool(GOOGLE_SCRIPT_URL)
+    })
+
+
+@app.route("/api/debug/<transcript_id>")
+def debug_transcript(transcript_id):
+    """Debug endpoint to see raw transcript data"""
+    transcript, error = get_transcript_by_id(transcript_id)
+    if error:
+        return jsonify({"error": error}), 500
+
+    if not transcript:
+        return jsonify({"error": "Transcript not found"}), 404
+
+    sentences = transcript.get("sentences", [])
+    return jsonify({
+        "id": transcript.get("id"),
+        "title": transcript.get("title"),
+        "date": transcript.get("date"),
+        "duration": transcript.get("duration"),
+        "sentence_count": len(sentences) if sentences else 0,
+        "first_sentences": sentences[:3] if sentences else [],
+        "has_content": bool(sentences)
     })
 
 
