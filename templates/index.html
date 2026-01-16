@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conference Notes</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #5046e5;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #4338ca;
+        }
+
+        .btn-primary:disabled {
+            background: #a5a3f3;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+
+        .status {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .status.error {
+            color: #dc2626;
+        }
+
+        .status.success {
+            color: #16a34a;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #5046e5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .transcript-list {
+            list-style: none;
+        }
+
+        .transcript-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .transcript-item:last-child {
+            border-bottom: none;
+        }
+
+        .transcript-item:hover {
+            background: #f9fafb;
+        }
+
+        .transcript-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .transcript-meta {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .summary-content {
+            line-height: 1.6;
+        }
+
+        .summary-content h2 {
+            font-size: 1.1rem;
+            color: #5046e5;
+            margin: 20px 0 10px 0;
+        }
+
+        .summary-content h2:first-child {
+            margin-top: 0;
+        }
+
+        .summary-content ul {
+            margin-left: 20px;
+            margin-bottom: 10px;
+        }
+
+        .summary-content li {
+            margin-bottom: 5px;
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .summary-date {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #5046e5;
+            text-decoration: none;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Conference Notes</h1>
+            <p class="subtitle">Transform recordings into actionable insights</p>
+        </header>
+
+        <!-- Main Actions -->
+        <div id="main-view" class="card">
+            <button class="btn btn-primary" onclick="processLatest()" id="process-btn">
+                Process Latest Recording
+            </button>
+            <button class="btn btn-secondary" onclick="showTranscripts()">
+                Choose from Recent Recordings
+            </button>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="status" class="card hidden">
+            <div class="status" id="status-message">
+                <span class="spinner"></span> Processing...
+            </div>
+        </div>
+
+        <!-- Transcript List -->
+        <div id="transcripts-view" class="card hidden">
+            <a href="#" class="back-link" onclick="showMain(); return false;">&larr; Back</a>
+            <h2 style="margin-bottom: 15px; font-size: 1.1rem;">Recent Recordings</h2>
+            <ul class="transcript-list" id="transcript-list">
+                <!-- Populated by JS -->
+            </ul>
+        </div>
+
+        <!-- Summary Result -->
+        <div id="summary-view" class="card hidden">
+            <a href="#" class="back-link" onclick="showMain(); return false;">&larr; Back</a>
+            <div class="summary-header">
+                <div>
+                    <div class="summary-title" id="summary-title">Meeting Title</div>
+                    <div class="summary-date" id="summary-date"></div>
+                </div>
+                <span id="google-badge" class="badge badge-success hidden">Saved to Docs</span>
+            </div>
+            <div class="summary-content" id="summary-content">
+                <!-- Populated by JS -->
+            </div>
+            <button class="btn btn-secondary copy-btn" onclick="copySummary()">
+                Copy to Clipboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentSummary = '';
+
+        function showMain() {
+            document.getElementById('main-view').classList.remove('hidden');
+            document.getElementById('transcripts-view').classList.add('hidden');
+            document.getElementById('summary-view').classList.add('hidden');
+            document.getElementById('status').classList.add('hidden');
+        }
+
+        function showStatus(message, type = '') {
+            const statusDiv = document.getElementById('status');
+            const statusMsg = document.getElementById('status-message');
+
+            statusDiv.classList.remove('hidden');
+            statusMsg.className = 'status ' + type;
+
+            if (type === '') {
+                statusMsg.innerHTML = '<span class="spinner"></span> ' + message;
+            } else {
+                statusMsg.textContent = message;
+            }
+        }
+
+        function hideStatus() {
+            document.getElementById('status').classList.add('hidden');
+        }
+
+        async function processLatest() {
+            const btn = document.getElementById('process-btn');
+            btn.disabled = true;
+            showStatus('Fetching latest recording...');
+
+            try {
+                const response = await fetch('/api/process-latest');
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus(data.error, 'error');
+                    btn.disabled = false;
+                    return;
+                }
+
+                displaySummary(data);
+            } catch (error) {
+                showStatus('Failed to process: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+        }
+
+        async function showTranscripts() {
+            document.getElementById('main-view').classList.add('hidden');
+            document.getElementById('transcripts-view').classList.remove('hidden');
+            showStatus('Loading recordings...');
+
+            try {
+                const response = await fetch('/api/transcripts');
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus(data.error, 'error');
+                    return;
+                }
+
+                hideStatus();
+                renderTranscriptList(data.transcripts);
+            } catch (error) {
+                showStatus('Failed to load: ' + error.message, 'error');
+            }
+        }
+
+        function renderTranscriptList(transcripts) {
+            const list = document.getElementById('transcript-list');
+
+            if (!transcripts || transcripts.length === 0) {
+                list.innerHTML = '<li class="transcript-item">No recordings found</li>';
+                return;
+            }
+
+            list.innerHTML = transcripts.map(t => {
+                const date = t.date ? new Date(t.date).toLocaleDateString() : 'Unknown date';
+                const duration = t.duration ? Math.round(t.duration / 60) + ' min' : '';
+                return `
+                    <li class="transcript-item" onclick="processTranscript('${t.id}')">
+                        <div class="transcript-title">${escapeHtml(t.title || 'Untitled')}</div>
+                        <div class="transcript-meta">${date} ${duration ? '· ' + duration : ''}</div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        async function processTranscript(id) {
+            showStatus('Processing recording...');
+
+            try {
+                const response = await fetch('/api/process/' + id);
+                const data = await response.json();
+
+                if (data.error) {
+                    showStatus(data.error, 'error');
+                    return;
+                }
+
+                displaySummary(data);
+            } catch (error) {
+                showStatus('Failed to process: ' + error.message, 'error');
+            }
+        }
+
+        function displaySummary(data) {
+            hideStatus();
+            document.getElementById('main-view').classList.add('hidden');
+            document.getElementById('transcripts-view').classList.add('hidden');
+            document.getElementById('summary-view').classList.remove('hidden');
+
+            document.getElementById('summary-title').textContent = data.title || 'Summary';
+            document.getElementById('summary-date').textContent = data.date ? new Date(data.date).toLocaleDateString() : '';
+
+            // Convert markdown to HTML (basic)
+            const htmlContent = markdownToHtml(data.summary);
+            document.getElementById('summary-content').innerHTML = htmlContent;
+
+            currentSummary = data.summary;
+
+            // Show Google Docs badge if saved
+            const badge = document.getElementById('google-badge');
+            if (data.google_saved) {
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function markdownToHtml(md) {
+            if (!md) return '';
+
+            return md
+                // Headers
+                .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+                .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+                // Bold
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                // Italic
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                // List items
+                .replace(/^- (.+)$/gm, '<li>$1</li>')
+                // Wrap consecutive li in ul
+                .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+                // Paragraphs
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^(.+)$/gm, function(match) {
+                    if (match.startsWith('<')) return match;
+                    return match;
+                });
+        }
+
+        function copySummary() {
+            navigator.clipboard.writeText(currentSummary).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
