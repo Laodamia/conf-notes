@@ -362,12 +362,12 @@
             list.innerHTML = transcripts.map(t => {
                 const date = t.date ? new Date(t.date).toLocaleDateString() : 'Unknown date';
                 const duration = t.duration ? Math.round(t.duration / 60) + ' min' : '';
-                const host = t.host_name || t.host_email || '';
-                const hostDisplay = host ? `<div class="transcript-host">Recorded by: ${escapeHtml(host)}</div>` : '';
+                const organizer = t.organizer_email || '';
+                const organizerDisplay = organizer ? `<div class="transcript-host">By: ${escapeHtml(organizer)}</div>` : '';
                 return `
                     <li class="transcript-item" onclick="processTranscript('${t.id}')">
                         <div class="transcript-title">${escapeHtml(t.title || 'Untitled')}</div>
-                        ${hostDisplay}
+                        ${organizerDisplay}
                         <div class="transcript-meta">${date} ${duration ? '· ' + duration : ''}</div>
                     </li>
                 `;
